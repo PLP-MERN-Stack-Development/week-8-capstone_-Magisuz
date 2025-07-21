@@ -4,12 +4,12 @@ require('dotenv').config();
 const User = require('./models/User');
 
 const users = [
-  { email: 'admin@example.com', password: 'admin123' },
-  { email: 'user1@example.com', password: 'user1234' },
-  { email: 'user2@example.com', password: 'user1234' },
-  { email: 'user3@example.com', password: 'user1234' },
-  { email: 'user4@example.com', password: 'user1234' },
-  { email: 'user5@example.com', password: 'user1234' },
+  { email: 'admin@example.com', password: 'admin123', role: 'admin' },
+  { email: 'user1@example.com', password: 'user1234', role: 'user' },
+  { email: 'user2@example.com', password: 'user1234', role: 'user' },
+  { email: 'user3@example.com', password: 'user1234', role: 'user' },
+  { email: 'user4@example.com', password: 'user1234', role: 'user' },
+  { email: 'user5@example.com', password: 'user1234', role: 'user' },
 ];
 
 async function seed() {
@@ -24,7 +24,7 @@ async function seed() {
 
   for (const user of users) {
     const hashedPassword = await bcrypt.hash(user.password, 10);
-    await User.create({ email: user.email, password: hashedPassword });
+    await User.create({ email: user.email, password: hashedPassword, role: user.role });
     console.log(`Created user: ${user.email}`);
   }
 

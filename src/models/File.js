@@ -11,6 +11,8 @@ const fileSchema = new mongoose.Schema({
   comingFrom: { type: String, required: true },
   destination: { type: String, required: true },
   reason: { type: String, required: true },
+  storageLocation: { type: String },
+  currentLocation: { type: String, default: 'Archives' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

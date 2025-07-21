@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../App.css';
 
 const mainBg = {
   minHeight: '100vh',
@@ -7,17 +8,13 @@ const mainBg = {
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  background: '#ecfccb', // lime background
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
+  background: '#ecfccb',
+  position: 'relative',
   zIndex: 0,
 };
 
 const cardStyle = {
-  width: 400,
+  width: 380,
   maxWidth: '95vw',
   padding: 32,
   background: '#fff',
@@ -26,6 +23,7 @@ const cardStyle = {
   border: '1px solid #e0e7ff',
   margin: '0 auto',
   boxSizing: 'border-box',
+  marginBottom: 48, // Add space for footer
 };
 
 const inputStyle = {
@@ -142,9 +140,26 @@ const Auth = ({ onAuthSuccess }) => {
       return;
     }
     if (isLogin) {
-      // Placeholder: handle login logic here
-      setForm({ email: '', password: '', confirmPassword: '' });
-      if (onAuthSuccess) onAuthSuccess();
+      // Login logic: call backend
+      try {
+        const res = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email, password: form.password }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Login failed.');
+        } else {
+          // Store user role in localStorage
+          localStorage.setItem('userRole', data.user.role);
+          localStorage.setItem('userEmail', data.user.email);
+          setForm({ email: '', password: '', confirmPassword: '' });
+          if (onAuthSuccess) onAuthSuccess(data.user);
+        }
+      } catch (err) {
+        setError('Network error. Please try again.');
+      }
     } else {
       // Signup logic: call backend
       try {
@@ -172,12 +187,12 @@ const Auth = ({ onAuthSuccess }) => {
 
   return (
     <div style={mainBg}>
-      <div style={{ width: '100vw', background: '#bef264', color: '#22543d', textAlign: 'center', fontWeight: 900, fontSize: 22, letterSpacing: 1, padding: '10px 0', boxShadow: '0 2px 8px #bbf7d0', zIndex: 20 }}>
-        The Judiciary
+      <div className="login-welcome-section" style={{ marginTop: 48, marginBottom: 24, textAlign: 'center', maxWidth: 480 }}>
+        <h1 style={{ fontWeight: 800, fontSize: 32, color: '#22543d', letterSpacing: 1, marginBottom: 12 }}>Welcome to the Archives Management System</h1>
+        <p style={{ fontSize: 18, color: '#4f46e5', marginBottom: 0 }}>
+          Securely manage, track, and search all archived files and their movements. Designed for efficiency, transparency, and ease of use for the Judiciary and its staff.
+        </p>
       </div>
-      <h1 style={{ fontWeight: 800, fontSize: 32, marginBottom: 32, color: '#312e81', letterSpacing: 1, textShadow: '0 2px 8px #e0e7ff', display: 'flex', alignItems: 'center', gap: 10 }}>
-        Archives Management System
-      </h1>
       <div style={cardStyle}>
         <h2 style={{ textAlign: 'center', color: '#4f46e5', fontWeight: 700, marginBottom: 24 }}>
           {isLogin ? 'Login' : 'Sign Up'}
