@@ -201,6 +201,7 @@ function MovementForm({ files, setFiles, refreshFiles }) {
       return;
     }
     try {
+      // Log movement
       const res = await fetch(`${API_URL}/movements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -215,6 +216,18 @@ function MovementForm({ files, setFiles, refreshFiles }) {
         const data = await res.json();
         setFormError(data.error || 'Failed to save movement.');
         return;
+      }
+      // If movement is to Archives, update file status to 'archived'. If to Registry, update to 'retrieved'.
+      let newStatus = match.status;
+      if (form.destination === 'Archives') newStatus = 'archived';
+      else if (form.destination === 'Registry') newStatus = 'retrieved';
+      // Update file status if changed
+      if (newStatus !== match.status) {
+        await fetch(`${API_URL}/files/${match._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'x-user-role': 'admin' },
+          body: JSON.stringify({ ...match, status: newStatus }),
+        });
       }
       // Fetch updated files from backend
       if (refreshFiles) await refreshFiles();
@@ -284,6 +297,8 @@ function MovementForm({ files, setFiles, refreshFiles }) {
 }
 
 function Files({ files, setFiles, userRole }) {
+  // Deduplicate files by _id
+  const uniqueFiles = Array.from(new Map(files.map(f => [f._id, f])).values());
   // Local state for files and form modal
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -381,20 +396,35 @@ function Files({ files, setFiles, userRole }) {
     setShowForm(true);
   };
 
-  // Delete handler
-  const handleDelete = async (file) => {
+  // Delete handler (now 'destroy' handler)
+  const handleDestroy = async (file) => {
     if (userRole !== 'admin') return;
-    if (!window.confirm('Are you sure you want to delete this file?')) return;
+    if (!window.confirm('Are you sure you want to mark this file as destroyed?')) return;
     try {
+      // Update file status to 'destroyed'
       const res = await fetch(`${API_URL}/files/${file._id}`, {
-        method: 'DELETE',
-        headers: { 'x-user-role': userRole },
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': userRole,
+        },
+        body: JSON.stringify({ ...file, status: 'destroyed' }),
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || 'Failed to delete file.');
+        alert(data.error || 'Failed to update file status.');
         return;
       }
+      // Log movement as 'destroyed'
+      await fetch(`${API_URL}/movements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file: file._id,
+          action: 'destroyed',
+          details: `File marked as destroyed by admin`,
+        }),
+      });
       await refreshFiles();
     } catch (err) {
       alert('Network error.');
@@ -554,7 +584,7 @@ function Files({ files, setFiles, userRole }) {
             </tr>
           </thead>
           <tbody>
-            {files.map(file => (
+            {uniqueFiles.map(file => (
               <tr key={file._id} className="table-row">
                 <td className="table-cell">{file.date}</td>
                 <td className="table-cell">{file.partyName}</td>
@@ -569,12 +599,26 @@ function Files({ files, setFiles, userRole }) {
                 <td className="table-cell">{file.storageLocation}</td>
                 <td className="table-cell">{file.currentLocation || ''}</td>
                 <td className="table-cell">
-                  <button onClick={() => setViewFile(file)} className="secondary-button">View</button>
-                  <button onClick={() => setShowHistory(file)} className="secondary-button">History</button>
+                  <button type="button" onClick={() => setViewFile(file)} className="secondary-button button-tooltip" tabIndex="0">
+                    <span role="img" aria-label="View">👁️</span>
+                    <span className="tooltip-text">View file details</span>
+                  </button>
+                  <button type="button" onClick={() => setShowHistory(file)} className="secondary-button button-tooltip" tabIndex="0">
+                    <span role="img" aria-label="History">📜</span>
+                    <span className="tooltip-text">View movement history</span>
+                  </button>
                   {userRole === 'admin' && (
                     <>
-                      <button onClick={() => handleEdit(file)} className="primary-button">Edit</button>
-                      <button onClick={() => handleDelete(file)} className="secondary-button">Delete</button>
+                      {file.status !== 'destroyed' && (
+                        <button type="button" onClick={() => handleEdit(file)} className="primary-button button-tooltip" tabIndex="0">
+                          <span role="img" aria-label="Edit">✏️</span>
+                          <span className="tooltip-text">Edit file</span>
+                        </button>
+                      )}
+                      <button type="button" onClick={() => handleDestroy(file)} className="danger-button button-tooltip" tabIndex="0">
+                        <span role="img" aria-label="Destroy">🗑️</span>
+                        <span className="tooltip-text">Mark as destroyed</span>
+                      </button>
                     </>
                   )}
                 </td>
@@ -593,7 +637,7 @@ function Movements({ files, setFiles, refreshFiles }) {
 }
 
 function AppRoutes() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('userRole'));
   const [files, setFiles] = useState([]); // Start with empty array
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'user');
   const navigate = useNavigate();
@@ -611,26 +655,46 @@ function AppRoutes() {
     refreshFiles();
   }, [isAuthenticated]);
 
-  // Auto-logout after 10 minutes of inactivity
+  // Synchronized inactivity logout across tabs
   useEffect(() => {
     if (!isAuthenticated) return;
+    const INACTIVITY_LIMIT = 600000; // 10 minutes
     let timer;
-    const resetTimer = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
+    // Update lastActivity in localStorage on any activity
+    const updateActivity = () => {
+      localStorage.setItem('lastActivity', Date.now().toString());
+    };
+    // Listen for activity in this tab
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(event => window.addEventListener(event, updateActivity));
+    // Listen for activity in other tabs
+    const checkActivity = () => {
+      const last = parseInt(localStorage.getItem('lastActivity'), 10);
+      if (isNaN(last)) return;
+      const now = Date.now();
+      if (now - last > INACTIVITY_LIMIT) {
         setIsAuthenticated(false);
         setUserRole('user');
         localStorage.removeItem('userRole');
         navigate('/');
         alert('You have been logged out due to inactivity.');
-      }, 600000); // 10 minutes
+      } else {
+        clearTimeout(timer);
+        timer = setTimeout(checkActivity, INACTIVITY_LIMIT - (now - last));
+      }
     };
-    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
-    events.forEach(event => window.addEventListener(event, resetTimer));
-    resetTimer();
+    // Listen for storage changes (activity in other tabs)
+    const onStorage = (e) => {
+      if (e.key === 'lastActivity') checkActivity();
+    };
+    window.addEventListener('storage', onStorage);
+    // Start timer
+    updateActivity();
+    checkActivity();
     return () => {
       clearTimeout(timer);
-      events.forEach(event => window.removeEventListener(event, resetTimer));
+      events.forEach(event => window.removeEventListener(event, updateActivity));
+      window.removeEventListener('storage', onStorage);
     };
   }, [isAuthenticated, navigate]);
 

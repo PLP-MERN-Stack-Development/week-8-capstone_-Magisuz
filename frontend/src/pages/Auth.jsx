@@ -1,81 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../App.css';
 
-const mainBg = {
-  minHeight: '100vh',
-  minWidth: '100vw',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#ecfccb',
-  position: 'relative',
-  zIndex: 0,
-};
-
-const cardStyle = {
-  width: 380,
-  maxWidth: '95vw',
-  padding: 32,
-  background: '#fff',
-  borderRadius: 16,
-  boxShadow: '0 4px 24px rgba(80, 112, 255, 0.10)',
-  border: '1px solid #e0e7ff',
-  margin: '0 auto',
-  boxSizing: 'border-box',
-  marginBottom: 48, // Add space for footer
-};
-
-const inputStyle = {
-  width: '100%',
-  padding: 12,
-  marginTop: 8,
-  borderRadius: 6,
-  border: '1px solid #b6c2ff',
-  fontSize: 18,
-  fontWeight: 400,
-  color: '#111',
-  background: '#f8fafc',
-  boxSizing: 'border-box',
-};
-
-const labelStyle = {
-  fontWeight: 400,
-  fontSize: 18,
-  color: '#14532d',
-  marginBottom: 4,
-  display: 'block',
-  background: '#fff',
-  padding: '2px 6px',
-  borderRadius: 4,
-  letterSpacing: 0.2,
-};
-
-const buttonStyle = {
-  width: '100%',
-  padding: 12,
-  background: 'linear-gradient(90deg, #4f46e5 0%, #06b6d4 100%)',
-  color: '#fff',
-  border: 'none',
-  borderRadius: 6,
-  fontWeight: 600,
-  fontSize: 16,
-  marginTop: 8,
-  cursor: 'pointer',
-  boxShadow: '0 2px 8px rgba(80, 112, 255, 0.10)',
-  transition: 'background 0.2s',
-};
-
-const toggleStyle = {
-  background: 'none',
-  border: 'none',
-  color: '#4f46e5',
-  cursor: 'pointer',
-  fontWeight: 500,
-  marginTop: 8,
-  fontSize: 15,
-};
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function ScrollToTopButton() {
@@ -91,25 +16,7 @@ function ScrollToTopButton() {
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      style={{
-        position: 'fixed',
-        right: 32,
-        bottom: 80,
-        zIndex: 100,
-        background: '#38a169',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '50%',
-        width: 48,
-        height: 48,
-        fontSize: 28,
-        fontWeight: 700,
-        boxShadow: '0 2px 8px #bbf7d0',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      className="scroll-to-top-button"
       aria-label="Scroll to top"
     >
       ↑
@@ -186,64 +93,64 @@ const Auth = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div style={mainBg}>
-      <div className="login-welcome-section" style={{ marginTop: 48, marginBottom: 24, textAlign: 'center', maxWidth: 480 }}>
-        <h1 style={{ fontWeight: 800, fontSize: 32, color: '#22543d', letterSpacing: 1, marginBottom: 12 }}>Welcome to the Archives Management System</h1>
-        <p style={{ fontSize: 18, color: '#4f46e5', marginBottom: 0 }}>
+    <div className="auth-main-bg">
+      <div className="login-welcome-section">
+        <h1 className="login-title">Welcome to the Archives Management System</h1>
+        <p className="login-desc">
           Securely manage, track, and search all archived files and their movements. Designed for efficiency, transparency, and ease of use for the Judiciary and its staff.
         </p>
       </div>
-      <div style={cardStyle}>
-        <h2 style={{ textAlign: 'center', color: '#4f46e5', fontWeight: 700, marginBottom: 24 }}>
+      <div className="auth-card">
+        <h2 className="auth-card-title">
           {isLogin ? 'Login' : 'Sign Up'}
         </h2>
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 18 }}>
-            <label style={labelStyle}>Email:</label>
+          <div className="auth-form-group">
+            <label className="auth-label">Email:</label>
             <input
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
               required
-              style={inputStyle}
+              className="auth-input"
             />
           </div>
-          <div style={{ marginBottom: 18 }}>
-            <label style={labelStyle}>Password:</label>
+          <div className="auth-form-group">
+            <label className="auth-label">Password:</label>
             <input
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
               required
-              style={inputStyle}
+              className="auth-input"
             />
           </div>
           {!isLogin && (
-            <div style={{ marginBottom: 18 }}>
-              <label style={labelStyle}>Confirm Password:</label>
+            <div className="auth-form-group">
+              <label className="auth-label">Confirm Password:</label>
               <input
                 type="password"
                 name="confirmPassword"
                 value={form.confirmPassword}
                 onChange={handleChange}
                 required
-                style={inputStyle}
+                className="auth-input"
               />
             </div>
           )}
-          {error && <div style={{ color: '#dc2626', marginBottom: 14, fontWeight: 500 }}>{error}</div>}
-          {success && <div style={{ color: '#059669', marginBottom: 14, fontWeight: 500 }}>{success}</div>}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-            <button type="submit" style={buttonStyle}>
+          {error && <div className="auth-error-message">{error}</div>}
+          {success && <div className="auth-success-message">{success}</div>}
+          <div className="auth-actions">
+            <button type="submit" className="auth-btn auth-btn-primary">
               {isLogin ? 'Login' : 'Sign Up'}
             </button>
             {isLogin && (
               <button
                 type="button"
                 onClick={() => { setIsLogin(false); setError(''); setSuccess(''); }}
-                style={{ background: '#bbf7d0', color: '#22543d', border: 'none', borderRadius: 6, padding: '10px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}
+                className="auth-btn auth-btn-secondary"
               >
                 Not registered? Sign Up
               </button>
@@ -252,7 +159,7 @@ const Auth = ({ onAuthSuccess }) => {
               <button
                 type="button"
                 onClick={() => { setIsLogin(true); setError(''); setSuccess(''); }}
-                style={{ background: '#bbf7d0', color: '#22543d', border: 'none', borderRadius: 6, padding: '10px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}
+                className="auth-btn auth-btn-secondary"
               >
                 Back to Login
               </button>
