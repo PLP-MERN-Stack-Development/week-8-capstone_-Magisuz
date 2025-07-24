@@ -31,4 +31,14 @@ router.get('/file/:fileId', async (req, res) => {
   }
 });
 
+// List all movements
+router.get('/', async (req, res) => {
+  try {
+    const movements = await Movement.find().populate('file').sort({ timestamp: -1 });
+    res.json(movements);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router; 

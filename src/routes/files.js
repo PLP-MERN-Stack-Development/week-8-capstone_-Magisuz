@@ -57,4 +57,23 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// Search files by partyName, case details, or status
+router.get('/search', async (req, res) => {
+  try {
+    const { partyName, caseCode, caseNumber, caseYear, status } = req.query;
+    const query = {};
+    if (partyName) {
+      query.partyName = { $regex: partyName, $options: 'i' };
+    }
+    if (caseCode) query.caseCode = caseCode;
+    if (caseNumber) query.caseNumber = caseNumber;
+    if (caseYear) query.caseYear = caseYear;
+    if (status) query.status = status;
+    const files = await File.find(query);
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router; 

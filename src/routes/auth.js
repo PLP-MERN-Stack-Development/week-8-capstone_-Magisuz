@@ -44,4 +44,36 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Get user profile (by email for demo)
+router.post('/profile', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required.' });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    res.json({ name: user.name, email: user.email, role: user.role });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Change password (by email for demo)
+router.post('/change-password', async (req, res) => {
+  try {
+    const { email, oldPassword, newPassword } = req.body;
+    if (!email || !oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'All fields are required.' });
+    }
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) return res.status(401).json({ error: 'Old password is incorrect.' });
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.json({ message: 'Password changed successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 module.exports = router; 
