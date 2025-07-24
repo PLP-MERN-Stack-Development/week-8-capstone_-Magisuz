@@ -78,6 +78,7 @@ function ProfileModal({ onClose }) {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [changeMsg, setChangeMsg] = useState('');
+  const [changing, setChanging] = useState(false); // loading state for password change
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const email = localStorage.getItem('userEmail');
 
@@ -101,6 +102,7 @@ function ProfileModal({ onClose }) {
     e.preventDefault();
     setChangeMsg('');
     setError('');
+    setChanging(true);
     try {
       const res = await fetch(`${API_URL}/auth/change-password`, {
         method: 'POST',
@@ -118,13 +120,16 @@ function ProfileModal({ onClose }) {
     } catch {
       setError('Failed to change password.');
     }
+    setChanging(false);
   };
+
+  const isChangeDisabled = changing || !oldPassword || !newPassword || newPassword.length < 6;
 
   return (
     <div className="modal-overlay">
       <div className="modal-content" style={{ minWidth: 320 }}>
         <h3 className="modal-title">User Profile</h3>
-        {loading ? <div>Loading...</div> : error ? <div style={{ color: 'red' }}>{error}</div> : profile && (
+        {loading ? <div>Loading...</div> : error && !profile ? <div style={{ color: 'red', marginBottom: 8 }}>{error}</div> : profile && (
           <>
             <div className="profile-item"><b>Name:</b> {profile.name}</div>
             <div className="profile-item"><b>Email:</b> {profile.email}</div>
@@ -132,17 +137,23 @@ function ProfileModal({ onClose }) {
             <form onSubmit={handleChangePassword} style={{ marginTop: '1em' }}>
               <div><b>Change Password</b></div>
               <div style={{ marginBottom: '0.5em' }}>
-                <input type="password" placeholder="Old password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} style={{ width: '100%' }} />
+                <input type="password" placeholder="Old password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} style={{ width: '100%' }} disabled={changing} />
               </div>
               <div style={{ marginBottom: '0.5em' }}>
-                <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%' }} />
+                <input type="password" placeholder="New password (min 6 chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%' }} disabled={changing} />
               </div>
-              <button type="submit" className="primary-button">Change Password</button>
-              {changeMsg && <div style={{ color: 'green', marginTop: '0.5em' }}>{changeMsg}</div>}
+              <button type="submit" className="primary-button" disabled={isChangeDisabled} style={{ width: '100%', opacity: isChangeDisabled ? 0.7 : 1 }}>
+                {changing ? 'Changing...' : 'Change Password'}
+              </button>
+              {changeMsg && <div style={{ color: 'green', marginTop: '0.5em', textAlign: 'center' }}>{changeMsg}</div>}
+              {error && profile && <div style={{ color: 'red', marginTop: '0.5em', textAlign: 'center' }}>{error}</div>}
+              {!error && !changeMsg && newPassword && newPassword.length > 0 && newPassword.length < 6 && (
+                <div style={{ color: 'orange', marginTop: '0.5em', textAlign: 'center' }}>Password must be at least 6 characters.</div>
+              )}
             </form>
           </>
         )}
-        <button onClick={onClose} className="primary-button" style={{ marginTop: '1em' }}>Close</button>
+        <button onClick={onClose} className="primary-button" style={{ marginTop: '1em' }} disabled={changing}>Close</button>
       </div>
     </div>
   );

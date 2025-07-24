@@ -26,7 +26,7 @@ function ScrollToTopButton() {
 
 const Auth = ({ onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [form, setForm] = useState({ email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -38,6 +38,10 @@ const Auth = ({ onAuthSuccess }) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    if (!isLogin && !form.name) {
+      setError('Please enter your name.');
+      return;
+    }
     if (!form.email || !form.password || (!isLogin && !form.confirmPassword)) {
       setError('Please fill in all required fields.');
       return;
@@ -73,14 +77,14 @@ const Auth = ({ onAuthSuccess }) => {
         const res = await fetch(`${API_URL}/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: form.email, password: form.password }),
+          body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
         });
         const data = await res.json();
         if (!res.ok) {
           setError(data.error || 'Signup failed.');
         } else {
           setSuccess('Signup successful! Please log in.');
-          setForm({ email: '', password: '', confirmPassword: '' });
+          setForm({ name: '', email: '', password: '', confirmPassword: '' });
           setTimeout(() => {
             setIsLogin(true);
             setSuccess('');
@@ -105,6 +109,19 @@ const Auth = ({ onAuthSuccess }) => {
           {isLogin ? 'Login' : 'Sign Up'}
         </h2>
         <form onSubmit={handleSubmit}>
+          {!isLogin && (
+            <div className="auth-form-group">
+              <label className="auth-label">Name:</label>
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+                className="auth-input"
+              />
+            </div>
+          )}
           <div className="auth-form-group">
             <label className="auth-label">Email:</label>
             <input
