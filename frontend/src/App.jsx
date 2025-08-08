@@ -4,9 +4,49 @@ import Auth from './pages/Auth';
 
 // Footer component
 function Footer() {
+  const currentYear = new Date().getFullYear();
+  
   return (
     <footer className="footer">
-      &copy; {new Date().getFullYear()} Archives Management System
+      <div className="footer-content">
+        <div className="footer-section">
+          <h4 className="footer-title">Archives Management System</h4>
+          <p className="footer-description">
+            Efficiently manage, track, and search all archived files and their movements.
+          </p>
+        </div>
+        
+        <div className="footer-section">
+          <h4 className="footer-title">Quick Links</h4>
+          <ul className="footer-links">
+            <li><Link to="/dashboard" className="footer-link">Dashboard</Link></li>
+            <li><Link to="/files" className="footer-link">Files</Link></li>
+            <li><Link to="/movements" className="footer-link">Movements</Link></li>
+            <li><Link to="/search" className="footer-link">Search</Link></li>
+            <li><Link to="/help" className="footer-link">Help</Link></li>
+          </ul>
+        </div>
+        
+        <div className="footer-section">
+          <h4 className="footer-title">Contact</h4>
+          <ul className="footer-links">
+            <li><span className="footer-info">Email: ictsupport@court.go.ke</span></li>
+            <li><span className="footer-info">Phone: 0730181040</span></li>
+            <li><span className="footer-info">Hours: Mon-Fri 8AM-5PM</span></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div className="footer-bottom">
+        <div className="footer-bottom-content">
+          <span>&copy; {currentYear} Archives Management System. All rights reserved.</span>
+          <div className="footer-bottom-links">
+            <Link to="/privacy-policy" className="footer-bottom-link">Privacy Policy</Link>
+            <Link to="/terms-of-service" className="footer-bottom-link">Terms of Service</Link>
+            <Link to="/help" className="footer-bottom-link">Help</Link>
+          </div>
+        </div>
+      </div>
     </footer>
   );
 }
@@ -1095,6 +1135,263 @@ function Movements({ files, setFiles, refreshFiles }) {
   );
 }
 
+function Help() {
+  return (
+    <section className="help-section">
+      <div className="help-container">
+        <h2 className="help-title">Help & Contact Information</h2>
+        
+        <div className="help-content">
+          <div className="help-section-card">
+            <h3 className="help-section-title">Contact Us</h3>
+            <div className="contact-info">
+              <div className="contact-item">
+                <strong>Email:</strong>
+                <span>ictsupport@court.go.ke</span>
+              </div>
+              <div className="contact-item">
+                <strong>Phone:</strong>
+                <span>0730181040</span>
+              </div>
+              <div className="contact-item">
+                <strong>Business Hours:</strong>
+                <span>Monday - Friday, 8:00 AM - 5:00 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">System Features</h3>
+            <div className="features-list">
+              <div className="feature-item">
+                <strong>Dashboard:</strong>
+                <span>View system overview and recent activities</span>
+              </div>
+              <div className="feature-item">
+                <strong>Files:</strong>
+                <span>Register, view, and manage archived files</span>
+              </div>
+              <div className="feature-item">
+                <strong>Movements:</strong>
+                <span>Track file movements and transfers</span>
+              </div>
+              <div className="feature-item">
+                <strong>Search:</strong>
+                <span>Search files by case details, party names, or status</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Getting Started</h3>
+            <div className="getting-started">
+              <p>Welcome to the Archives Management System. This system helps you efficiently manage, track, and search all archived files and their movements.</p>
+              <p>Use the navigation menu above to access different sections of the system. If you need assistance, please contact our support team using the information provided.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PrivacyPolicy() {
+  return (
+    <section className="help-section">
+      <div className="help-container">
+        <h2 className="help-title">Privacy Policy</h2>
+        
+        <div className="help-content">
+          <div className="help-section-card">
+            <h3 className="help-section-title">Information We Collect</h3>
+            <div className="policy-content">
+              <p>We collect information that you provide directly to us, such as when you create an account, register files, or contact our support team. This may include:</p>
+              <ul>
+                <li>Personal identification information (name, email address, phone number)</li>
+                <li>Professional information (role, department, access permissions)</li>
+                <li>System usage data and activity logs</li>
+                <li>File and document information that you upload or manage</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">How We Use Your Information</h3>
+            <div className="policy-content">
+              <p>We use the information we collect to:</p>
+              <ul>
+                <li>Provide, maintain, and improve our services</li>
+                <li>Process and manage file registrations and movements</li>
+                <li>Send you technical notices, updates, and support messages</li>
+                <li>Respond to your comments, questions, and requests</li>
+                <li>Monitor and analyze usage patterns and trends</li>
+                <li>Ensure system security and prevent fraud</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Information Sharing</h3>
+            <div className="policy-content">
+              <p>We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except in the following circumstances:</p>
+              <ul>
+                <li>To comply with legal obligations or court orders</li>
+                <li>To protect the rights, property, or safety of our organization</li>
+                <li>With your explicit consent for specific purposes</li>
+                <li>To authorized government agencies as required by law</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Data Security</h3>
+            <div className="policy-content">
+              <p>We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. These measures include:</p>
+              <ul>
+                <li>Encryption of data in transit and at rest</li>
+                <li>Regular security assessments and updates</li>
+                <li>Access controls and authentication mechanisms</li>
+                <li>Employee training on data protection practices</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Your Rights</h3>
+            <div className="policy-content">
+              <p>You have the right to:</p>
+              <ul>
+                <li>Access your personal information that we hold</li>
+                <li>Request correction of inaccurate or incomplete information</li>
+                <li>Request deletion of your personal information</li>
+                <li>Object to processing of your personal information</li>
+                <li>Request restriction of processing</li>
+                <li>Data portability (receive your data in a structured format)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Contact Us</h3>
+            <div className="policy-content">
+              <p>If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
+              <div className="contact-info">
+                <div className="contact-item">
+                  <strong>Email:</strong>
+                  <span>ictsupport@court.go.ke</span>
+                </div>
+                <div className="contact-item">
+                  <strong>Phone:</strong>
+                  <span>0730181040</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TermsOfService() {
+  return (
+    <section className="help-section">
+      <div className="help-container">
+        <h2 className="help-title">Terms of Service</h2>
+        
+        <div className="help-content">
+          <div className="help-section-card">
+            <h3 className="help-section-title">Acceptance of Terms</h3>
+            <div className="policy-content">
+              <p>By accessing and using the Archives Management System, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.</p>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Use License</h3>
+            <div className="policy-content">
+              <p>Permission is granted to temporarily access the Archives Management System for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:</p>
+              <ul>
+                <li>Modify or copy the materials</li>
+                <li>Use the materials for any commercial purpose or for any public display</li>
+                <li>Attempt to reverse engineer any software contained in the system</li>
+                <li>Remove any copyright or other proprietary notations from the materials</li>
+                <li>Transfer the materials to another person or "mirror" the materials on any other server</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">User Responsibilities</h3>
+            <div className="policy-content">
+              <p>As a user of the Archives Management System, you are responsible for:</p>
+              <ul>
+                <li>Maintaining the confidentiality of your account credentials</li>
+                <li>All activities that occur under your account</li>
+                <li>Ensuring the accuracy and completeness of information you provide</li>
+                <li>Complying with all applicable laws and regulations</li>
+                <li>Not using the system for any unlawful or unauthorized purpose</li>
+                <li>Reporting any security concerns or suspicious activities</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">System Availability</h3>
+            <div className="policy-content">
+              <p>We strive to maintain high system availability, but we do not guarantee that the service will be uninterrupted or error-free. We may:</p>
+              <ul>
+                <li>Perform scheduled maintenance that may temporarily affect service availability</li>
+                <li>Update or modify the system features and functionality</li>
+                <li>Suspend or terminate service in case of security threats or violations</li>
+                <li>Implement changes to improve system performance and security</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Limitation of Liability</h3>
+            <div className="policy-content">
+              <p>In no event shall the Archives Management System or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the system, even if we have been notified orally or in writing of the possibility of such damage.</p>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Governing Law</h3>
+            <div className="policy-content">
+              <p>These terms and conditions are governed by and construed in accordance with the laws of Kenya and you irrevocably submit to the exclusive jurisdiction of the courts in that location.</p>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Changes to Terms</h3>
+            <div className="policy-content">
+              <p>We reserve the right to modify these terms of service at any time. We will notify users of any material changes by posting the new terms on this page. Your continued use of the service after such modifications constitutes acceptance of the updated terms.</p>
+            </div>
+          </div>
+
+          <div className="help-section-card">
+            <h3 className="help-section-title">Contact Information</h3>
+            <div className="policy-content">
+              <p>For questions about these Terms of Service, please contact us:</p>
+              <div className="contact-info">
+                <div className="contact-item">
+                  <strong>Email:</strong>
+                  <span>ictsupport@court.go.ke</span>
+                </div>
+                <div className="contact-item">
+                  <strong>Phone:</strong>
+                  <span>0730181040</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function AppRoutes() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('userRole'));
   const [files, setFiles] = useState([]); // Start with empty array
@@ -1183,6 +1480,9 @@ function AppRoutes() {
         <Route path="/files" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Files files={files} setFiles={setFiles} userRole={userRole} /></Layout> : <Navigate to="/" />} />
         <Route path="/movements" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Movements files={files} setFiles={setFiles} refreshFiles={refreshFiles} /></Layout> : <Navigate to="/" />} />
         <Route path="/search" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Search files={files} /></Layout> : <Navigate to="/" />} />
+        <Route path="/help" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Help /></Layout> : <Navigate to="/" />} />
+        <Route path="/privacy-policy" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><PrivacyPolicy /></Layout> : <Navigate to="/" />} />
+        <Route path="/terms-of-service" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><TermsOfService /></Layout> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/"} />} />
       </Routes>
     </>
