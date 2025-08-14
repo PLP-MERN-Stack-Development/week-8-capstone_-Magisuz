@@ -1,13 +1,47 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import Auth from './pages/Auth';
+
+// Theme Context
+const ThemeContext = createContext();
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+}
+
+function ThemeProvider({ children }) {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  return (
+    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
 
 // Footer component
 function Footer() {
   const currentYear = new Date().getFullYear();
+  const { isDarkMode } = useTheme();
   
   return (
-    <footer className="footer">
+    <footer className={`footer ${isDarkMode ? 'dark' : ''}`}>
       <div className="footer-content">
         <div className="footer-section">
           <h4 className="footer-title">Archives Management System</h4>
@@ -53,6 +87,8 @@ function Footer() {
 
 function ScrollToTopButton() {
   const [visible, setVisible] = useState(false);
+  const { isDarkMode } = useTheme();
+  
   useEffect(() => {
     const onScroll = () => {
       setVisible(window.scrollY > 200);
@@ -64,7 +100,7 @@ function ScrollToTopButton() {
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="scroll-to-top-button"
+      className={`scroll-to-top-button ${isDarkMode ? 'dark' : ''}`}
       aria-label="Scroll to top"
     >
       ↑
@@ -73,14 +109,16 @@ function ScrollToTopButton() {
 }
 
 // Layout wrapper for all pages
-function Layout({ children, showNav, onLogout }) {
+function Layout({ children, showNav, onLogout, userRole }) {
+  const { isDarkMode } = useTheme();
+  
   return (
-    <div className="app-layout">
-      <header className="app-header">
-        The Judiciary
+    <div className={`app-layout ${isDarkMode ? 'dark' : ''}`}>
+      <header className={`app-header ${isDarkMode ? 'dark' : ''}`}>
+        The Judiciary - Archives Management System
       </header>
-      {showNav && <NavBar onLogout={onLogout} />}
-      <main className="app-main">
+      {showNav && <NavBar onLogout={onLogout} userRole={userRole} />}
+      <main className={`app-main ${isDarkMode ? 'dark' : ''}`}>
         {children}
       </main>
       <Footer />
@@ -89,10 +127,34 @@ function Layout({ children, showNav, onLogout }) {
   );
 }
 
-function NavBar({ onLogout }) {
+function NavBar({ onLogout, userRole }) {
   const [showProfile, setShowProfile] = useState(false);
+  const [userName, setUserName] = useState('');
+  const { isDarkMode, toggleTheme } = useTheme();
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const email = localStorage.getItem('userEmail');
+
+  useEffect(() => {
+    if (email) {
+      fetch(`${API_URL}/auth/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.error && data.name) {
+            setUserName(data.name);
+          }
+        })
+        .catch(() => {
+          // Silently fail, user name will just be empty
+        });
+    }
+  }, [email, API_URL]);
+
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${isDarkMode ? 'dark' : ''}`}>
       <div className="navbar-left">
         <span className="navbar-title">Archives</span>
         <Link to="/dashboard" className="navbar-link">Dashboard</Link>
@@ -101,17 +163,29 @@ function NavBar({ onLogout }) {
         <Link to="/search" className="navbar-link">Search</Link>
       </div>
       <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1em' }}>
+        {userName && (
+          <span className="navbar-user-name" style={{ color: '#a3e635', fontWeight: '500' }}>
+            Welcome, {userName} ({userRole})
+          </span>
+        )}
+        <button 
+          onClick={toggleTheme} 
+          className="theme-toggle-button" 
+          title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {isDarkMode ? '☀️' : '🌙'}
+        </button>
         <button onClick={() => setShowProfile(true)} className="navbar-profile-button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5em' }} title="Profile">
           <span role="img" aria-label="Profile">👤</span>
         </button>
         <button onClick={onLogout} className="navbar-logout-button">Logout</button>
       </div>
-      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} userRole={userRole} />}
     </nav>
   );
 }
 
-function ProfileModal({ onClose }) {
+function ProfileModal({ onClose, userRole }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -119,6 +193,7 @@ function ProfileModal({ onClose }) {
   const [newPassword, setNewPassword] = useState('');
   const [changeMsg, setChangeMsg] = useState('');
   const [changing, setChanging] = useState(false); // loading state for password change
+  const { isDarkMode } = useTheme();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const email = localStorage.getItem('userEmail');
 
@@ -167,20 +242,45 @@ function ProfileModal({ onClose }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ minWidth: 320 }}>
+      <div className={`modal-content ${isDarkMode ? 'dark' : ''}`} style={{ 
+        minWidth: 400, 
+        maxWidth: '90vw', 
+        maxHeight: '90vh', 
+        overflowY: 'auto'
+      }}>
         <h3 className="modal-title">User Profile</h3>
         {loading ? <div>Loading...</div> : error && !profile ? <div style={{ color: 'red', marginBottom: 8 }}>{error}</div> : profile && (
           <>
-            <div className="profile-item"><b>Name:</b> {profile.name}</div>
-            <div className="profile-item"><b>Email:</b> {profile.email}</div>
-            <div className="profile-item"><b>Role:</b> {profile.role}</div>
+            <div className="profile-section">
+              <div className="profile-section-title">Personal Information</div>
+              <div className="profile-item"><b>Name:</b> {profile.name}</div>
+              <div className="profile-item"><b>Email:</b> {profile.email}</div>
+              <div className="profile-item"><b>Account Created:</b> {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Unknown'}</div>
+            </div>
+            
+            <div className="profile-section">
+              <div className="profile-section-title">Access & Permissions</div>
+              <div className="profile-item"><b>Current Role:</b> {userRole}</div>
+              <div className="profile-item"><b>Permissions:</b> {userRole === 'admin' ? 'Full Access (Admin)' : 'View Access (User)'}</div>
+              <div className="profile-item"><b>Session Status:</b> <span style={{ color: '#38a169' }}>Active</span></div>
+            </div>
+            
+            <div className="profile-section">
+              <div className="profile-section-title">Activity Information</div>
+              <div className="profile-item">
+                <b>Last Login:</b> {profile.lastLogin ? new Date(profile.lastLogin).toLocaleString() : 'Never'}
+              </div>
+              <div className="profile-item">
+                <b>Total Logins:</b> {profile.loginCount || 0}
+              </div>
+            </div>
             <form onSubmit={handleChangePassword} style={{ marginTop: '1em' }}>
               <div><b>Change Password</b></div>
               <div style={{ marginBottom: '0.5em' }}>
-                <input type="password" placeholder="Old password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} style={{ width: '100%' }} disabled={changing} />
+                <input type="password" placeholder="Old password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} style={{ width: '100%' }} disabled={changing} className="form-input" />
               </div>
               <div style={{ marginBottom: '0.5em' }}>
-                <input type="password" placeholder="New password (min 6 chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%' }} disabled={changing} />
+                <input type="password" placeholder="New password (min 6 chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%' }} disabled={changing} className="form-input" />
               </div>
               <button type="submit" className="primary-button" disabled={isChangeDisabled} style={{ width: '100%', opacity: isChangeDisabled ? 0.7 : 1 }}>
                 {changing ? 'Changing...' : 'Change Password'}
@@ -1460,6 +1560,7 @@ function AppRoutes() {
     setIsAuthenticated(true);
     setUserRole(user.role);
     setUserEmail(user.email);
+    localStorage.setItem('userRole', user.role);
     localStorage.setItem('userEmail', user.email);
     navigate('/dashboard');
   };
@@ -1469,20 +1570,21 @@ function AppRoutes() {
     setUserEmail('');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('lastActivity');
     navigate('/');
   };
 
   return (
     <>
       <Routes>
-        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Layout showNav={false}><Auth onAuthSuccess={handleAuthSuccess} /></Layout>} />
-        <Route path="/dashboard" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Dashboard files={files} /></Layout> : <Navigate to="/" />} />
-        <Route path="/files" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Files files={files} setFiles={setFiles} userRole={userRole} /></Layout> : <Navigate to="/" />} />
-        <Route path="/movements" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Movements files={files} setFiles={setFiles} refreshFiles={refreshFiles} /></Layout> : <Navigate to="/" />} />
-        <Route path="/search" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Search files={files} /></Layout> : <Navigate to="/" />} />
-        <Route path="/help" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><Help /></Layout> : <Navigate to="/" />} />
-        <Route path="/privacy-policy" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><PrivacyPolicy /></Layout> : <Navigate to="/" />} />
-        <Route path="/terms-of-service" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout}><TermsOfService /></Layout> : <Navigate to="/" />} />
+        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Layout showNav={false} userRole={userRole}><Auth onAuthSuccess={handleAuthSuccess} /></Layout>} />
+        <Route path="/dashboard" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout} userRole={userRole}><Dashboard files={files} /></Layout> : <Navigate to="/" />} />
+        <Route path="/files" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout} userRole={userRole}><Files files={files} setFiles={setFiles} userRole={userRole} /></Layout> : <Navigate to="/" />} />
+        <Route path="/movements" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout} userRole={userRole}><Movements files={files} setFiles={setFiles} refreshFiles={refreshFiles} /></Layout> : <Navigate to="/" />} />
+        <Route path="/search" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout} userRole={userRole}><Search files={files} /></Layout> : <Navigate to="/" />} />
+        <Route path="/help" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout} userRole={userRole}><Help /></Layout> : <Navigate to="/" />} />
+        <Route path="/privacy-policy" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout} userRole={userRole}><PrivacyPolicy /></Layout> : <Navigate to="/" />} />
+        <Route path="/terms-of-service" element={isAuthenticated ? <Layout showNav={true} onLogout={handleLogout} userRole={userRole}><TermsOfService /></Layout> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/"} />} />
       </Routes>
     </>
@@ -1491,9 +1593,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router>
-      <AppRoutes />
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </ThemeProvider>
   );
 }
 

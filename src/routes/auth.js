@@ -38,6 +38,12 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
+    
+    // Update last login time and increment login count
+    user.lastLogin = new Date();
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+    
     res.json({ message: 'Login successful', user: { email: user.email, role: user.role } });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
@@ -51,7 +57,14 @@ router.post('/profile', async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Email required.' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: 'User not found.' });
-    res.json({ name: user.name, email: user.email, role: user.role });
+    res.json({ 
+      name: user.name, 
+      email: user.email, 
+      role: user.role,
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt,
+      loginCount: user.loginCount
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }
