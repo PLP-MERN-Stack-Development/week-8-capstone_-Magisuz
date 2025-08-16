@@ -207,6 +207,8 @@ function ProfileModal({ onClose, userRole }) {
   const { isDarkMode } = useTheme();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const email = localStorage.getItem('userEmail');
+  
+
 
   useEffect(() => {
     setLoading(true);
@@ -253,11 +255,15 @@ function ProfileModal({ onClose, userRole }) {
 
   // User management functions
   const fetchUsers = async () => {
-    if (userRole !== 'admin') return;
+    if (userRole !== 'admin') {
+      setUserError('User is not admin');
+      return;
+    }
     setLoadingUsers(true);
     setUserError('');
     try {
-      const res = await fetch(`${API_URL}/auth/users`, {
+      const url = `${API_URL}/auth/users`;
+      const res = await fetch(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -265,10 +271,12 @@ function ProfileModal({ onClose, userRole }) {
       if (res.ok) {
         setUsers(data);
       } else {
-        setUserError(data.error || 'Failed to fetch users');
+        const errorMsg = data.error || 'Failed to fetch users';
+        setUserError(errorMsg);
       }
     } catch (err) {
-      setUserError('Network error while fetching users');
+      const errorMsg = `Network error while fetching users: ${err.message}`;
+      setUserError(errorMsg);
     }
     setLoadingUsers(false);
   };
@@ -367,6 +375,9 @@ function ProfileModal({ onClose, userRole }) {
         overflowY: 'auto'
       }}>
         <h3 className="modal-title">User Profile</h3>
+        <div style={{ padding: '10px', marginBottom: '10px', backgroundColor: '#f0f0f0', borderRadius: '4px', fontSize: '12px' }}>
+          <strong>Debug Info:</strong> Current user role: {userRole} | Is Admin: {userRole === 'admin' ? 'Yes' : 'No'}
+        </div>
         {loading ? <div>Loading...</div> : error && !profile ? <div style={{ color: 'red', marginBottom: 8 }}>{error}</div> : profile && (
           <>
             <div className="profile-section">
@@ -411,12 +422,15 @@ function ProfileModal({ onClose, userRole }) {
               )}
             </form>
             
-            {/* User Management Section for Admins */}
-            {userRole === 'admin' && (
+                          {/* User Management Section for Admins */}
+              <div style={{ padding: '10px', marginBottom: '10px', backgroundColor: '#e0f0ff', borderRadius: '4px', fontSize: '12px' }}>
+                <strong>User Management Debug:</strong> userRole={userRole}, showUserManagement={showUserManagement.toString()}, users.length={users.length}
+              </div>
+              {userRole === 'admin' && (
               <div className="profile-section user-management-section">
                 <div className="profile-section-title user-management-toggle">
                   <span>User Management</span>
-                  <button 
+                                    <button
                     type="button" 
                     onClick={() => {
                       setShowUserManagement(!showUserManagement);
@@ -525,6 +539,13 @@ function ProfileModal({ onClose, userRole }) {
                         {userSuccess}
                       </div>
                     )}
+                    {/* Debug Messages */}
+                    <div style={{ padding: '10px', marginTop: '10px', backgroundColor: '#fff0e0', borderRadius: '4px', fontSize: '12px' }}>
+                      <strong>Debug Messages:</strong><br/>
+                      userError: {userError || 'None'}<br/>
+                      userSuccess: {userSuccess || 'None'}<br/>
+                      loadingUsers: {loadingUsers.toString()}
+                    </div>
                   </div>
                 )}
               </div>
