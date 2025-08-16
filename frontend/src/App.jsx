@@ -193,6 +193,17 @@ function ProfileModal({ onClose, userRole }) {
   const [newPassword, setNewPassword] = useState('');
   const [changeMsg, setChangeMsg] = useState('');
   const [changing, setChanging] = useState(false); // loading state for password change
+  
+  // User management states
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user' });
+  const [addingUser, setAddingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [userError, setUserError] = useState('');
+  const [userSuccess, setUserSuccess] = useState('');
+  
   const { isDarkMode } = useTheme();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const email = localStorage.getItem('userEmail');
@@ -240,6 +251,113 @@ function ProfileModal({ onClose, userRole }) {
 
   const isChangeDisabled = changing || !oldPassword || !newPassword || newPassword.length < 6;
 
+  // User management functions
+  const fetchUsers = async () => {
+    if (userRole !== 'admin') return;
+    setLoadingUsers(true);
+    setUserError('');
+    try {
+      const res = await fetch(`${API_URL}/auth/users`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(data);
+      } else {
+        setUserError(data.error || 'Failed to fetch users');
+      }
+    } catch (err) {
+      setUserError('Network error while fetching users');
+    }
+    setLoadingUsers(false);
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    setAddingUser(true);
+    setUserError('');
+    setUserSuccess('');
+    
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      setUserError('Please fill in all fields');
+      setAddingUser(false);
+      return;
+    }
+    
+    if (newUser.password.length < 6) {
+      setUserError('Password must be at least 6 characters');
+      setAddingUser(false);
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUserSuccess('User added successfully');
+        setNewUser({ name: '', email: '', password: '', role: 'user' });
+        fetchUsers(); // Refresh user list
+      } else {
+        setUserError(data.error || 'Failed to add user');
+      }
+    } catch (err) {
+      setUserError('Network error while adding user');
+    }
+    setAddingUser(false);
+  };
+
+  const handleUpdateUserRole = async (userId, newRole) => {
+    setUserError('');
+    setUserSuccess('');
+    try {
+      const res = await fetch(`${API_URL}/auth/users/${userId}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUserSuccess('User role updated successfully');
+        fetchUsers(); // Refresh user list
+      } else {
+        setUserError(data.error || 'Failed to update user role');
+      }
+    } catch (err) {
+      setUserError('Network error while updating user role');
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+    setUserError('');
+    setUserSuccess('');
+    try {
+      const res = await fetch(`${API_URL}/auth/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-email': email // Pass current user's email to prevent self-deletion
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUserSuccess('User deleted successfully');
+        fetchUsers(); // Refresh user list
+      } else {
+        setUserError(data.error || 'Failed to delete user');
+      }
+    } catch (err) {
+      setUserError('Network error while deleting user');
+    }
+  };
+
   return (
     <div className="modal-overlay">
       <div className={`modal-content ${isDarkMode ? 'dark' : ''}`} style={{ 
@@ -274,6 +392,7 @@ function ProfileModal({ onClose, userRole }) {
                 <b>Total Logins:</b> {profile.loginCount || 0}
               </div>
             </div>
+            
             <form onSubmit={handleChangePassword} style={{ marginTop: '1em' }}>
               <div><b>Change Password</b></div>
               <div style={{ marginBottom: '0.5em' }}>
@@ -291,6 +410,125 @@ function ProfileModal({ onClose, userRole }) {
                 <div style={{ color: 'orange', marginTop: '0.5em', textAlign: 'center' }}>Password must be at least 6 characters.</div>
               )}
             </form>
+            
+            {/* User Management Section for Admins */}
+            {userRole === 'admin' && (
+              <div className="profile-section user-management-section">
+                <div className="profile-section-title user-management-toggle">
+                  <span>User Management</span>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setShowUserManagement(!showUserManagement);
+                      if (!showUserManagement) {
+                        fetchUsers();
+                      }
+                    }}
+                    className="secondary-button"
+                  >
+                    {showUserManagement ? 'Hide' : 'Show'} User Management
+                  </button>
+                </div>
+                
+                {showUserManagement && (
+                  <div>
+                    {/* Add New User Form */}
+                    <div className="add-user-form">
+                      <h4>Add New User</h4>
+                      <form onSubmit={handleAddUser}>
+                        <input
+                          type="text"
+                          placeholder="Full Name"
+                          value={newUser.name}
+                          onChange={e => setNewUser({...newUser, name: e.target.value})}
+                          className="form-input"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email Address"
+                          value={newUser.email}
+                          onChange={e => setNewUser({...newUser, email: e.target.value})}
+                          className="form-input"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Password (min 6 chars)"
+                          value={newUser.password}
+                          onChange={e => setNewUser({...newUser, password: e.target.value})}
+                          className="form-input"
+                        />
+                        <select
+                          value={newUser.role}
+                          onChange={e => setNewUser({...newUser, role: e.target.value})}
+                          className="form-input"
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        <button 
+                          type="submit" 
+                          className="primary-button" 
+                          disabled={addingUser}
+                        >
+                          {addingUser ? 'Adding...' : 'Add User'}
+                        </button>
+                      </form>
+                    </div>
+                    
+                    {/* User List */}
+                    <div>
+                      <h4>Manage Users</h4>
+                      {loadingUsers ? (
+                        <div style={{ textAlign: 'center', padding: '1em' }}>Loading users...</div>
+                      ) : (
+                        <div className="user-list">
+                          {users.map(user => (
+                            <div key={user._id} className="user-item">
+                              <div className="user-info">
+                                <div className="user-name">{user.name}</div>
+                                <div className="user-email">{user.email}</div>
+                                <div className={`user-role ${user.role}`}>
+                                  Role: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </div>
+                              </div>
+                              <div className="user-actions">
+                                <select
+                                  value={user.role}
+                                  onChange={e => handleUpdateUserRole(user._id, e.target.value)}
+                                  className="role-select"
+                                >
+                                  <option value="user">User</option>
+                                  <option value="admin">Admin</option>
+                                </select>
+                                <button
+                                  onClick={() => handleDeleteUser(user._id)}
+                                  className="delete-user-btn"
+                                  title="Delete User"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* User Management Messages */}
+                    {userError && (
+                      <div className="user-message error">
+                        {userError}
+                      </div>
+                    )}
+                    {userSuccess && (
+                      <div className="user-message success">
+                        {userSuccess}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
         <button onClick={onClose} className="primary-button" style={{ marginTop: '1em' }} disabled={changing}>Close</button>
@@ -314,6 +552,7 @@ function Search({ files }) {
   const [showHistory, setShowHistory] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const [error, setError] = useState('');
+  const { isDarkMode } = useTheme();
 
   const caseCodes = ['CR', 'TR', 'SO', 'CC', 'MCCHCC'];
   const caseYears = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
@@ -366,21 +605,21 @@ function Search({ files }) {
   };
 
   return (
-    <section className="search-section">
-      <h2 className="search-title">Search Archives</h2>
-      <form className="search-form" onSubmit={handleSearch} style={{ marginBottom: '2em' }}>
-        <div className="search-type-radios" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '900px', margin: '0 auto 1.5em auto' }}>
-          <label style={{ flex: 1, textAlign: 'center', fontWeight: 600, padding: '0.5em 0' }}><input type="radio" name="searchType" value="case" checked={searchType === 'case'} onChange={handleTypeChange} /> Search by Case Details</label>
-          <label style={{ flex: 1, textAlign: 'center', fontWeight: 600, padding: '0.5em 0' }}><input type="radio" name="searchType" value="party" checked={searchType === 'party'} onChange={handleTypeChange} /> Search by Name of Party</label>
-          <label style={{ flex: 1, textAlign: 'center', fontWeight: 600, padding: '0.5em 0' }}><input type="radio" name="searchType" value="status" checked={searchType === 'status'} onChange={handleTypeChange} /> Search by Status</label>
+    <section className={`search-section ${isDarkMode ? 'dark' : ''}`}>
+      <h2 className={`search-title ${isDarkMode ? 'dark' : ''}`}>Search Archives</h2>
+      <form className={`search-form ${isDarkMode ? 'dark' : ''}`} onSubmit={handleSearch} style={{ marginBottom: '2em' }}>
+        <div className={`search-type-radios ${isDarkMode ? 'dark' : ''}`} style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '900px', margin: '0 auto 1.5em auto' }}>
+          <label className={isDarkMode ? 'dark' : ''} style={{ flex: 1, textAlign: 'center', fontWeight: 600, padding: '0.5em 0' }}><input type="radio" name="searchType" value="case" checked={searchType === 'case'} onChange={handleTypeChange} /> Search by Case Details</label>
+          <label className={isDarkMode ? 'dark' : ''} style={{ flex: 1, textAlign: 'center', fontWeight: 600, padding: '0.5em 0' }}><input type="radio" name="searchType" value="party" checked={searchType === 'party'} onChange={handleTypeChange} /> Search by Name of Party</label>
+          <label className={isDarkMode ? 'dark' : ''} style={{ flex: 1, textAlign: 'center', fontWeight: 600, padding: '0.5em 0' }}><input type="radio" name="searchType" value="status" checked={searchType === 'status'} onChange={handleTypeChange} /> Search by Status</label>
         </div>
         {searchType === 'case' && (
-          <div className="search-fields search-fields-case" style={{ display: 'flex', gap: '1em', alignItems: 'center', justifyContent: 'center', marginBottom: '1em' }}>
+          <div className={`search-fields search-fields-case ${isDarkMode ? 'dark' : ''}`} style={{ display: 'flex', gap: '1em', alignItems: 'center', justifyContent: 'center', marginBottom: '1em' }}>
             <select
               name="caseCode"
               value={form.caseCode}
               onChange={handleInputChange}
-              className="search-input search-input-large"
+              className={`search-input search-input-large ${isDarkMode ? 'dark' : ''}`}
               style={{ width: '140px' }}
             >
               <option value="">Case Code</option>
@@ -394,14 +633,14 @@ function Search({ files }) {
               placeholder="Case Number"
               value={form.caseNumber}
               onChange={handleInputChange}
-              className="search-input search-input-large"
+              className={`search-input search-input-large ${isDarkMode ? 'dark' : ''}`}
               style={{ width: '180px' }}
             />
             <select
               name="caseYear"
               value={form.caseYear}
               onChange={handleInputChange}
-              className="search-input search-input-large"
+              className={`search-input search-input-large ${isDarkMode ? 'dark' : ''}`}
               style={{ width: '140px' }}
             >
               <option value="">Case Year</option>
@@ -412,25 +651,25 @@ function Search({ files }) {
           </div>
         )}
         {searchType === 'party' && (
-          <div className="search-fields search-fields-party" style={{ display: 'flex', gap: '1em', alignItems: 'center', justifyContent: 'center', marginBottom: '1em' }}>
+          <div className={`search-fields search-fields-party ${isDarkMode ? 'dark' : ''}`} style={{ display: 'flex', gap: '1em', alignItems: 'center', justifyContent: 'center', marginBottom: '1em' }}>
             <input
               type="text"
               name="partyName"
               placeholder="Name of Party"
               value={form.partyName}
               onChange={handleInputChange}
-              className="search-input search-input-large"
+              className={`search-input search-input-large ${isDarkMode ? 'dark' : ''}`}
               style={{ width: '400px', fontSize: '1.2em', height: '2.5em' }}
             />
           </div>
         )}
         {searchType === 'status' && (
-          <div className="search-fields search-fields-status" style={{ display: 'flex', gap: '1em', alignItems: 'center', justifyContent: 'center', marginBottom: '1em' }}>
+          <div className={`search-fields search-fields-status ${isDarkMode ? 'dark' : ''}`} style={{ display: 'flex', gap: '1em', alignItems: 'center', justifyContent: 'center', marginBottom: '1em' }}>
             <select
               name="status"
               value={form.status}
               onChange={handleInputChange}
-              className="search-input search-input-large"
+              className={`search-input search-input-large ${isDarkMode ? 'dark' : ''}`}
               style={{ width: '220px', fontSize: '1.1em', height: '2.5em' }}
             >
               <option value="">Select status</option>
@@ -447,9 +686,9 @@ function Search({ files }) {
       {error && (
         <div style={{ color: 'red', textAlign: 'center', marginBottom: '1em' }}>{error}</div>
       )}
-      <div className="search-results-container">
+      <div className={`search-results-container ${isDarkMode ? 'dark' : ''}`}>
         {loading ? (
-          <div className="search-results-message">Loading...</div>
+          <div className={`search-results-message ${isDarkMode ? 'dark' : ''}`}>Loading...</div>
         ) : results.length > 0 ? (
           <div className="files-table-container">
             <table className="files-table">
@@ -490,7 +729,10 @@ function Search({ files }) {
                         <span role="img" aria-label="View">👁️</span>
                         <span className="tooltip-text">View file details</span>
                       </button>
-                      <button type="button" onClick={() => setShowHistory(file)} className="secondary-button button-tooltip" tabIndex="0">
+                      <button type="button" onClick={() => {
+                        console.log('View movement history button clicked for file:', file);
+                        setShowHistory(file);
+                      }} className="secondary-button button-tooltip" tabIndex="0">
                         <span role="img" aria-label="History">📜</span>
                         <span className="tooltip-text">View movement history</span>
                       </button>
@@ -502,7 +744,7 @@ function Search({ files }) {
             {showHistory && <MovementHistoryModal file={showHistory} onClose={() => setShowHistory(null)} />}
           </div>
         ) : (
-          <div className="search-results-message">{results.length === 0 ? 'No results found.' : 'Search results will appear here.'}</div>
+          <div className={`search-results-message ${isDarkMode ? 'dark' : ''}`}>{results.length === 0 ? 'No results found.' : 'Search results will appear here.'}</div>
         )}
         {viewFile && (
           <div className="modal-overlay">
@@ -544,28 +786,30 @@ function Dashboard({ files }) {
       { action: 'destroyed', file: 'File C', time: '1 hour ago' },
     ],
   };
+  const { isDarkMode } = useTheme();
+  
   return (
-    <section className="dashboard-section">
-      <h2 className="dashboard-title">Dashboard</h2>
-      <p className="dashboard-welcome-message">
+    <section className={`dashboard-section ${isDarkMode ? 'dark' : ''}`}>
+      <h2 className={`dashboard-title ${isDarkMode ? 'dark' : ''}`}>Dashboard</h2>
+      <p className={`dashboard-welcome-message ${isDarkMode ? 'dark' : ''}`}>
         Welcome to the Archives Management System. Here you can manage, track, and search all archived files and their movements efficiently.
       </p>
-      <div className="dashboard-stats-grid">
-        <div className="dashboard-stat-card">
-          <div className="stat-title">Total Files</div>
-          <div className="stat-value">{stats.totalFiles}</div>
+      <div className={`dashboard-stats-grid ${isDarkMode ? 'dark' : ''}`}>
+        <div className={`dashboard-stat-card ${isDarkMode ? 'dark' : ''}`}>
+          <div className={`stat-title ${isDarkMode ? 'dark' : ''}`}>Total Files</div>
+          <div className={`stat-value ${isDarkMode ? 'dark' : ''}`}>{stats.totalFiles}</div>
         </div>
-        <div className="dashboard-stat-card">
-          <div className="stat-title">Total Movements</div>
-          <div className="stat-value">{stats.totalMovements}</div>
+        <div className={`dashboard-stat-card ${isDarkMode ? 'dark' : ''}`}>
+          <div className={`stat-title ${isDarkMode ? 'dark' : ''}`}>Total Movements</div>
+          <div className={`stat-value ${isDarkMode ? 'dark' : ''}`}>{stats.totalMovements}</div>
         </div>
       </div>
-      <div className="recent-activity-section">
-        <h3 className="recent-activity-title">Recent Activity</h3>
-        <ul className="recent-activity-list">
+      <div className={`recent-activity-section ${isDarkMode ? 'dark' : ''}`}>
+        <h3 className={`recent-activity-title ${isDarkMode ? 'dark' : ''}`}>Recent Activity</h3>
+        <ul className={`recent-activity-list ${isDarkMode ? 'dark' : ''}`}>
           {stats.recent.map((item, idx) => (
-            <li key={idx} className="recent-activity-item">
-              <b>{item.action.charAt(0).toUpperCase() + item.action.slice(1)}</b> - {item.file} <span className="activity-time">({item.time})</span>
+            <li key={idx} className={`recent-activity-item ${isDarkMode ? 'dark' : ''}`}>
+              <b>{item.action.charAt(0).toUpperCase() + item.action.slice(1)}</b> - {item.file} <span className={`activity-time ${isDarkMode ? 'dark' : ''}`}>({item.time})</span>
             </li>
           ))}
         </ul>
@@ -578,32 +822,53 @@ function MovementHistoryModal({ file, onClose }) {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     if (!file) return;
+    console.log('MovementHistoryModal: Fetching movements for file:', file._id);
     setLoading(true);
     fetch(`${API_URL}/movements/file/${file._id}`)
-      .then(res => res.json())
-      .then(data => { setMovements(data); setLoading(false); })
-      .catch(() => { setMovements([]); setLoading(false); });
+      .then(res => {
+        console.log('MovementHistoryModal: Response status:', res.status);
+        return res.json();
+      })
+      .then(data => { 
+        console.log('MovementHistoryModal: Received data:', data);
+        setMovements(data); 
+        setLoading(false); 
+      })
+      .catch((error) => { 
+        console.error('MovementHistoryModal: Error fetching movements:', error);
+        setMovements([]); 
+        setLoading(false); 
+      });
   }, [file]);
 
-  if (!file) return null;
+  if (!file) {
+    console.log('MovementHistoryModal: No file provided, returning null');
+    return null;
+  }
+  
+  console.log('MovementHistoryModal: Rendering modal for file:', file._id, 'movements:', movements, 'loading:', loading);
+  
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h3 className="modal-title">Movement History</h3>
-        {loading ? <div>Loading...</div> : (
-          <ul className="movement-history-list">
-            {movements.length === 0 && <li>No movements found.</li>}
+    <div className="modal-overlay" onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+      <div className={`modal-content ${isDarkMode ? 'dark' : ''}`} onClick={(e) => e.stopPropagation()} style={{ backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', color: isDarkMode ? '#f1f5f9' : '#1e293b', padding: '32px', borderRadius: '16px', minWidth: '320px', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 4px 24px rgba(0,0,0,0.3)', position: 'relative' }}>
+        <h3 className={`modal-title ${isDarkMode ? 'dark' : ''}`} style={{ color: isDarkMode ? '#ffffff' : '#1e293b', marginBottom: '20px', borderBottom: `2px solid ${isDarkMode ? '#2563eb' : '#38a169'}`, paddingBottom: '10px' }}>Movement History</h3>
+        {loading ? (
+          <div className={isDarkMode ? 'dark' : ''} style={{ color: isDarkMode ? '#f1f5f9' : '#1e293b', textAlign: 'center', padding: '1rem' }}>Loading...</div>
+        ) : (
+          <ul className={`movement-history-list ${isDarkMode ? 'dark' : ''}`} style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '400px', overflowY: 'auto' }}>
+            {movements.length === 0 && <li className={isDarkMode ? 'dark' : ''} style={{ color: isDarkMode ? '#f1f5f9' : '#1e293b', padding: '0.75rem 0' }}>No movements found.</li>}
             {movements.map((m, idx) => (
-              <li key={m._id || idx} className="movement-history-item">
-                <b>{m.action}</b> - {m.details} <span className="activity-time">({new Date(m.timestamp).toLocaleString()})</span>
+              <li key={m._id || idx} className={`movement-history-item ${isDarkMode ? 'dark' : ''}`} style={{ color: isDarkMode ? '#f1f5f9' : '#1e293b', padding: '0.75rem 0', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`, fontSize: '0.9rem', lineHeight: '1.4' }}>
+                <b style={{ color: isDarkMode ? '#ffffff' : '#1e293b', fontWeight: '600' }}>{m.action}</b> - {m.details} <span className="activity-time" style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '0.8rem', fontStyle: 'italic' }}>({new Date(m.timestamp).toLocaleString()})</span>
               </li>
             ))}
           </ul>
         )}
-        <button onClick={onClose} className="modal-close-button">Close</button>
+        <button onClick={onClose} className="primary-button" style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: isDarkMode ? '#2563eb' : '#38a169', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>Close</button>
       </div>
     </div>
   );
@@ -624,6 +889,7 @@ function MovementForm({ files, setFiles, refreshFiles, refreshMovements }) {
   });
   const [formError, setFormError] = useState('');
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const { isDarkMode } = useTheme();
 
   // Auto-populate partyName when caseNumber and caseYear are entered
   const handleChange = (e) => {
@@ -700,8 +966,8 @@ function MovementForm({ files, setFiles, refreshFiles, refreshMovements }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="movement-form">
-      <h3 className="movement-form-title">Log File Movement</h3>
+    <form onSubmit={handleSubmit} className={`movement-form ${isDarkMode ? 'dark' : ''}`}>
+      <h3 className={`movement-form-title ${isDarkMode ? 'dark' : ''}`}>Log File Movement</h3>
       <div className="form-grid">
         <div>
           <label className="form-label">Date</label>
@@ -805,6 +1071,7 @@ function Files({ files, setFiles, userRole }) {
   const [editId, setEditId] = useState(null);
   const [showHistory, setShowHistory] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const { isDarkMode } = useTheme();
 
   // Helper to refresh files from backend
   const refreshFiles = async () => {
@@ -929,9 +1196,9 @@ function Files({ files, setFiles, userRole }) {
   };
 
   return (
-    <section className="files-section">
-      <div className="files-header">
-        <h2 className="files-title">Files</h2>
+    <section className={`files-section ${isDarkMode ? 'dark' : ''}`}>
+      <div className={`files-header ${isDarkMode ? 'dark' : ''}`}>
+        <h2 className={`files-title ${isDarkMode ? 'dark' : ''}`}>Files</h2>
         {userRole === 'admin' && (
           <button onClick={() => { setShowForm(true); setEditId(null); setForm({ date: '', partyName: '', caseCode: '', caseNumber: '', caseYear: '', lastActivity: '', status: '', comingFrom: '', destination: '', reason: '', storageLocation: '' }); }} className="primary-button">
             Register New File
@@ -939,13 +1206,13 @@ function Files({ files, setFiles, userRole }) {
         )}
       </div>
       {userRole !== 'admin' && (
-        <div className="view-only-message">
+        <div className={`view-only-message ${isDarkMode ? 'dark' : ''}`}>
           You have view-only access. Please contact an admin for file changes.
         </div>
       )}
       {showForm && userRole === 'admin' && (
-        <div className="form-modal">
-          <h3 className="form-modal-title">{editId ? 'Edit File' : 'Register File'}</h3>
+        <div className={`form-modal ${isDarkMode ? 'dark' : ''}`}>
+          <h3 className={`form-modal-title ${isDarkMode ? 'dark' : ''}`}>{editId ? 'Edit File' : 'Register File'}</h3>
           <form onSubmit={handleFormSubmit}>
             <div className="form-grid">
               <div>
@@ -1100,7 +1367,10 @@ function Files({ files, setFiles, userRole }) {
                     <span role="img" aria-label="View">👁️</span>
                     <span className="tooltip-text">View file details</span>
                   </button>
-                  <button type="button" onClick={() => setShowHistory(file)} className="secondary-button button-tooltip" tabIndex="0">
+                  <button type="button" onClick={() => {
+                    console.log('View movement history button clicked for file:', file);
+                    setShowHistory(file);
+                  }} className="secondary-button button-tooltip" tabIndex="0">
                     <span role="img" aria-label="History">📜</span>
                     <span className="tooltip-text">View movement history</span>
                   </button>
@@ -1142,6 +1412,7 @@ function Files({ files, setFiles, userRole }) {
             </button>
           </div>
         )}
+        {showHistory && <MovementHistoryModal file={showHistory} onClose={() => setShowHistory(null)} />}
       </div>
     </section>
   );
@@ -1153,6 +1424,7 @@ function Movements({ files, setFiles, refreshFiles }) {
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const { isDarkMode } = useTheme();
 
   const fetchMovements = async () => {
     setLoading(true);
@@ -1174,10 +1446,10 @@ function Movements({ files, setFiles, refreshFiles }) {
   const paginatedMovements = movements.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <section className="movements-section">
-      <h2>Movements</h2>
+    <section className={`movements-section ${isDarkMode ? 'dark' : ''}`}>
+      <h2 className={isDarkMode ? 'dark' : ''}>Movements</h2>
       <MovementForm files={files} setFiles={setFiles} refreshFiles={refreshFiles} refreshMovements={fetchMovements} />
-      <h3 style={{ marginTop: '2em' }}>File Movement Records</h3>
+      <h3 className={isDarkMode ? 'dark' : ''} style={{ marginTop: '2em' }}>File Movement Records</h3>
       {loading ? (
         <div>Loading...</div>
       ) : (
@@ -1236,55 +1508,57 @@ function Movements({ files, setFiles, refreshFiles }) {
 }
 
 function Help() {
+  const { isDarkMode } = useTheme();
+  
   return (
-    <section className="help-section">
-      <div className="help-container">
-        <h2 className="help-title">Help & Contact Information</h2>
+    <section className={`help-section ${isDarkMode ? 'dark' : ''}`}>
+      <div className={`help-container ${isDarkMode ? 'dark' : ''}`}>
+        <h2 className={`help-title ${isDarkMode ? 'dark' : ''}`}>Help & Contact Information</h2>
         
-        <div className="help-content">
-          <div className="help-section-card">
-            <h3 className="help-section-title">Contact Us</h3>
-            <div className="contact-info">
-              <div className="contact-item">
-                <strong>Email:</strong>
-                <span>ictsupport@court.go.ke</span>
+        <div className={`help-content ${isDarkMode ? 'dark' : ''}`}>
+          <div className={`help-section-card ${isDarkMode ? 'dark' : ''}`}>
+            <h3 className={`help-section-title ${isDarkMode ? 'dark' : ''}`}>Contact Us</h3>
+            <div className={`contact-info ${isDarkMode ? 'dark' : ''}`}>
+              <div className={`contact-item ${isDarkMode ? 'dark' : ''}`}>
+                <strong className={isDarkMode ? 'dark' : ''}>Email:</strong>
+                <span className={isDarkMode ? 'dark' : ''}>ictsupport@court.go.ke</span>
               </div>
-              <div className="contact-item">
-                <strong>Phone:</strong>
-                <span>0730181040</span>
+              <div className={`contact-item ${isDarkMode ? 'dark' : ''}`}>
+                <strong className={isDarkMode ? 'dark' : ''}>Phone:</strong>
+                <span className={isDarkMode ? 'dark' : ''}>0730181040</span>
               </div>
-              <div className="contact-item">
-                <strong>Business Hours:</strong>
-                <span>Monday - Friday, 8:00 AM - 5:00 PM</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="help-section-card">
-            <h3 className="help-section-title">System Features</h3>
-            <div className="features-list">
-              <div className="feature-item">
-                <strong>Dashboard:</strong>
-                <span>View system overview and recent activities</span>
-              </div>
-              <div className="feature-item">
-                <strong>Files:</strong>
-                <span>Register, view, and manage archived files</span>
-              </div>
-              <div className="feature-item">
-                <strong>Movements:</strong>
-                <span>Track file movements and transfers</span>
-              </div>
-              <div className="feature-item">
-                <strong>Search:</strong>
-                <span>Search files by case details, party names, or status</span>
+              <div className={`contact-item ${isDarkMode ? 'dark' : ''}`}>
+                <strong className={isDarkMode ? 'dark' : ''}>Business Hours:</strong>
+                <span className={isDarkMode ? 'dark' : ''}>Monday - Friday, 8:00 AM - 5:00 PM</span>
               </div>
             </div>
           </div>
 
-          <div className="help-section-card">
-            <h3 className="help-section-title">Getting Started</h3>
-            <div className="getting-started">
+          <div className={`help-section-card ${isDarkMode ? 'dark' : ''}`}>
+            <h3 className={`help-section-title ${isDarkMode ? 'dark' : ''}`}>System Features</h3>
+            <div className={`features-list ${isDarkMode ? 'dark' : ''}`}>
+              <div className={`feature-item ${isDarkMode ? 'dark' : ''}`}>
+                <strong className={isDarkMode ? 'dark' : ''}>Dashboard:</strong>
+                <span className={isDarkMode ? 'dark' : ''}>View system overview and recent activities</span>
+              </div>
+              <div className={`feature-item ${isDarkMode ? 'dark' : ''}`}>
+                <strong className={isDarkMode ? 'dark' : ''}>Files:</strong>
+                <span className={isDarkMode ? 'dark' : ''}>Register, view, and manage archived files</span>
+              </div>
+              <div className={`feature-item ${isDarkMode ? 'dark' : ''}`}>
+                <strong className={isDarkMode ? 'dark' : ''}>Movements:</strong>
+                <span className={isDarkMode ? 'dark' : ''}>Track file movements and transfers</span>
+              </div>
+              <div className={`feature-item ${isDarkMode ? 'dark' : ''}`}>
+                <strong className={isDarkMode ? 'dark' : ''}>Search:</strong>
+                <span className={isDarkMode ? 'dark' : ''}>Search files by case details, party names, or status</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={`help-section-card ${isDarkMode ? 'dark' : ''}`}>
+            <h3 className={`help-section-title ${isDarkMode ? 'dark' : ''}`}>Getting Started</h3>
+            <div className={`getting-started ${isDarkMode ? 'dark' : ''}`}>
               <p>Welcome to the Archives Management System. This system helps you efficiently manage, track, and search all archived files and their movements.</p>
               <p>Use the navigation menu above to access different sections of the system. If you need assistance, please contact our support team using the information provided.</p>
             </div>

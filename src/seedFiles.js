@@ -24,7 +24,9 @@ const files = [
 ];
 
 async function seed() {
-  await mongoose.connect(process.env.MONGODB_URI, {
+  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://magisuz:BeStill@cluster0.tmsysjl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+  
+  await mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   });

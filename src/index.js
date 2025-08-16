@@ -10,7 +10,11 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI, {
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://magisuz:BeStill@cluster0.tmsysjl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+
+console.log('MongoDB URI:', MONGODB_URI);
+
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })

@@ -89,4 +89,89 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
+// Admin registration endpoint (for user management)
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, password, role = 'user' } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email and password are required.' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+    }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ error: 'User with this email already exists.' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ 
+      name, 
+      email, 
+      password: hashedPassword, 
+      role: role === 'admin' ? 'admin' : 'user' 
+    });
+    await user.save();
+    res.status(201).json({ message: 'User registered successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Get all users (admin only)
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.find({}, { password: 0 }); // Exclude password field
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Update user role (admin only)
+router.put('/users/:userId/role', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+    
+    if (!role || !['user', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Valid role (user or admin) is required.' });
+    }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    
+    user.role = role;
+    await user.save();
+    
+    res.json({ message: 'User role updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Delete user (admin only)
+router.delete('/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    
+    // Prevent admin from deleting themselves
+    const currentUserEmail = req.headers['x-user-email'];
+    if (currentUserEmail && user.email === currentUserEmail) {
+      return res.status(400).json({ error: 'You cannot delete your own account.' });
+    }
+    
+    await User.findByIdAndDelete(userId);
+    res.json({ message: 'User deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 module.exports = router; 
