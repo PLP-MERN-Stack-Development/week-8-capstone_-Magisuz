@@ -551,14 +551,26 @@ form {
   background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
 }
 
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1200px;
+  gap: 3rem;
+  padding: 2rem;
+}
+
+.auth-container.dark {
+  color: #f1f5f9;
+}
+
 .login-welcome-section {
-  position: absolute;
-  top: 2rem;
-  left: 2rem;
-  right: 2rem;
   text-align: center;
   color: white;
-  z-index: 1;
+  max-width: 800px;
+  margin-bottom: 1rem;
 }
 
 .login-welcome-section.dark {
@@ -595,8 +607,6 @@ form {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 450px;
-  position: relative;
-  z-index: 2;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -1542,6 +1552,10 @@ form {
   .app-main {
     padding: 16px 4px 60px 4px;
   }
+  .auth-container {
+    padding: 1rem;
+    gap: 2rem;
+  }
   .auth-card {
     padding: 2rem;
     margin: 1rem;
@@ -1550,11 +1564,7 @@ form {
     font-size: 2rem;
   }
   .login-welcome-section {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
   }
   
   /* Mobile responsive for search */
